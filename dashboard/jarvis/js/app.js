@@ -177,6 +177,44 @@ async function initDashboard() {
     setText('#stat-avatars', String(a.count));
     setText('#stat-avatars-detail', a.count ? `rendered PNGs in ops/avatar/out · no VRM on disk` : 'no renders yet');
   } catch (e) { setText('#stat-avatars', '?'); }
+  await initBusiness();
+}
+
+function businessNumber(value) {
+  return Number.isFinite(Number(value)) ? String(value) : '—';
+}
+
+function renderBusinessOverview(snapshot) {
+  const date = snapshot?.emergent?.health;
+  const crm = snapshot?.crm?.crm;
+  const email = crm?.email;
+  const marketing = snapshot?.marketing?.marketing;
+  const analytics = snapshot?.emergent?.analytics?.analytics;
+  setText('#business-status', `Date App: ${snapshot?.emergent?.state || 'UNAVAILABLE'} · CRM: ${snapshot?.crm?.state || 'UNAVAILABLE'} · Marketing: ${snapshot?.marketing?.state || 'UNAVAILABLE'}`);
+  const crmAvailable = snapshot?.crm?.state === 'UP';
+  const marketingAvailable = ['UP', 'PARTIAL'].includes(snapshot?.marketing?.state);
+  setText('#business-users', snapshot?.emergent?.state === 'UP' ? businessNumber(date?.userCount) : '—');
+  setText('#business-leads', crmAvailable ? businessNumber(crm?.totalLeads) : '—');
+  setText('#business-hot-leads', crmAvailable ? businessNumber(crm?.hotLeads) : '—');
+  setText('#business-campaigns', crmAvailable ? businessNumber(crm?.totalCampaigns) : '—');
+  setText('#business-open-rate', crmAvailable && email ? `${businessNumber(email.openRate)}%` : '—');
+  setText('#business-automations', marketingAvailable ? businessNumber(marketing?.activeAutomationRules) : '—');
+  setText('#business-social', marketingAvailable ? businessNumber(marketing?.socialLeadsCaptured) : '—');
+  setText('#business-conversions', marketingAvailable ? businessNumber(marketing?.landingPageConversions) : '—');
+  const funnel = analytics ? `${businessNumber(analytics.signupsTotal)} signups · ${businessNumber(analytics.payingCount)} paying` : 'Date App analytics not authorized';
+  setText('#business-detail', `${funnel} · private records and credentials stay server-side.`);
+}
+
+async function initBusiness() {
+  try {
+    const snapshot = await api('/api/business');
+    renderBusinessOverview(snapshot);
+    logActivity(`Business telemetry: Date App ${snapshot?.emergent?.state || 'UNAVAILABLE'}, CRM ${snapshot?.crm?.state || 'UNAVAILABLE'}, marketing ${snapshot?.marketing?.state || 'UNAVAILABLE'}`);
+  } catch (e) {
+    renderBusinessOverview({});
+    setText('#business-detail', `Business telemetry unavailable — ${e.message}`);
+    logActivity(`Business telemetry unavailable — ${e.message}`);
+  }
 }
 
 // ── Agents (live: every loadable skill in .agents/skills) ──────────────────
@@ -615,7 +653,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 // Exports for testing
 export {
-  state, $, $$, el, setText, logActivity, initTabs, switchTab, initDashboard, initAgents,
+  state, $, $$, el, setText, logActivity, initTabs, switchTab, initDashboard, initBusiness, renderBusinessOverview, initAgents,
   renderAgentCategories, renderAgentList, showAgentDetail, initGraph, renderGraph, simulateGraph,
   openNote, initAvatar, loadAvatarGallery, loadVRMFile, initMissionControl, initClaude, launchClaude,
   initWidgets, sendChat, doSearch, doSummarize, doTTS, generateImage, api, omniFetch, omniChat,

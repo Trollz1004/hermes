@@ -14,6 +14,7 @@
  *   ANY  /api/omni/<path>       proxy -> OmniRoute /v1/<path> with OMNI_ROUTE_API_KEY from the repo .env
  *   GET  /api/agents            every loadable skill (SKILL.md frontmatter) — live directory read
  *   GET  /api/nodes             god's-eye view: both LAN nodes, every service identity-probed (lib/nodes.mjs)
+ *   GET  /api/business           read-only Date App/Emergent + CRM/marketing aggregates (lib/emergent-crm.mjs)
  *   GET  /api/vault/graph       Obsidian vault notes + [[wikilinks]] as nodes/links
  *   GET  /api/vault/note?p=     one note's markdown (path relative to the vault)
  *   GET  /api/vault/status      is the Obsidian Local REST API answering on :27123 (identity checked)
@@ -37,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, extname, resolve, sep } from 'node:path';
 import { resolveConfig, resolveVault, readEnvFile } from './lib/config.mjs';
 import { probeAll } from './lib/nodes.mjs';
+import { businessSnapshot } from './lib/emergent-crm.mjs';
 import { resolveClaudeBinary, killTree, PERMISSION_MODES, PERSONAS } from './lib/claude-bridge.mjs';
 import { handleBridgeRoutes } from './lib/bridge-routes.mjs';
 import { hostname } from 'node:os';
@@ -65,6 +67,10 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': '
 // Secrets are read from the .env at request time and never logged or returned.
 function envValue(name) {
   return process.env[name] || readEnvFile(CFG.envFile)[name] || readEnvFile(join(REPO, '.env'))[name] || '';
+}
+
+function businessEnv() {
+  return { ...readEnvFile(join(REPO, '.env')), ...readEnvFile(CFG.envFile), ...process.env };
 }
 
 // ── skills = agents (live directory read; --hash clones are Paperclip copies, skipped) ──
@@ -219,6 +225,8 @@ createServer(async (req, res) => {
   if (p === '/api/agents') { const a = agents(); return send(res, 200, { count: a.length, source: SKILLS, agents: a, at: new Date().toISOString() }); }
   // God's-eye view: every LAN service probed with an identity check (lib/nodes.mjs). No sample data.
   if (p === '/api/nodes') return send(res, 200, await probeAll({ timeoutMs: 3000 }));
+  // Business telemetry is read-only and summarized server-side. No lead PII or credentials leave this process.
+  if (p === '/api/business') return send(res, 200, await businessSnapshot({ env: businessEnv(), timeoutMs: 5000 }));
   if (p === '/api/vault/graph') return send(res, 200, vaultGraph());
   if (p === '/api/vault/note') return send(res, 200, vaultNote(url.searchParams.get('p') || ''));
   if (p === '/api/vault/status') {

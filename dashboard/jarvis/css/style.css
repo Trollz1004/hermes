@@ -324,6 +324,13 @@ body {
   font-size: 11px;
 }
 
+.business-overview { margin-bottom: 24px; }
+.business-status, .business-detail { color: var(--text-muted); font-size: 12px; }
+.business-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; margin: 14px 0; }
+.business-metric { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; background: var(--bg-primary); }
+.business-metric span { display: block; color: var(--text-muted); font-size: 11px; }
+.business-metric strong { display: block; color: var(--accent); font-family: var(--font-mono); font-size: 18px; margin-top: 5px; }
+
 /* Agents */
 .agents-layout {
   display: grid;

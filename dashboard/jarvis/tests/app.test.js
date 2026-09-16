@@ -63,7 +63,7 @@ globalThis.location = { hostname: '192.168.0.8' }
 globalThis.requestAnimationFrame = () => {}
 globalThis.URL.createObjectURL = () => 'blob:x'
 
-for (const id of ['activity-log', 'omni-model-count', 'stat-services', 'stat-services-detail', 'stat-agents', 'stat-agents-detail', 'stat-nodes', 'stat-nodes-detail', 'stat-vault', 'stat-vault-detail', 'stat-avatars', 'stat-avatars-detail', 'agent-categories', 'agent-list', 'agent-detail-panel', 'graph-meta', 'graph-note', 'mission-control-link', 'hermes-link', 'claude-command', 'claude-bridge-status', 'claude-note', 'claude-result', 'widget-search-results', 'avatar-gallery']) reg(id)
+for (const id of ['activity-log', 'omni-model-count', 'stat-services', 'stat-services-detail', 'stat-agents', 'stat-agents-detail', 'stat-nodes', 'stat-nodes-detail', 'stat-vault', 'stat-vault-detail', 'stat-avatars', 'stat-avatars-detail', 'business-overview', 'business-status', 'business-users', 'business-leads', 'business-hot-leads', 'business-campaigns', 'business-open-rate', 'business-automations', 'business-social', 'business-conversions', 'business-detail', 'agent-categories', 'agent-list', 'agent-detail-panel', 'graph-meta', 'graph-note', 'mission-control-link', 'hermes-link', 'claude-command', 'claude-bridge-status', 'claude-note', 'claude-result', 'widget-search-results', 'avatar-gallery']) reg(id)
 reg('agent-search', 'input'); reg('graph-search', 'input'); reg('widget-search-input', 'input')
 const frame = reg('mission-control-frame', 'iframe')
 const svg = reg('graph-svg', 'svg'); svg.querySelectorAll = () => []
@@ -82,6 +82,11 @@ globalThis.fetch = vi.fn(async (url, options = {}) => {
   if (url.endsWith('/api/vault/status')) return json({ up: true, state: 'UP', url: 'http://127.0.0.1:27123' })
   if (url.endsWith('/api/vault/graph')) return json({ ok: true, name: 'Antigravity', notes: 3, wikilinks: 2, orphans: 1, nodes: [{ id: 'A', label: 'A', group: '(root)', in: 0, out: 2 }, { id: 'B', label: 'B', group: '(root)', in: 1, out: 0 }, { id: 'sub/C', label: 'C', group: 'sub', in: 1, out: 0 }], links: [{ source: 'A', target: 'B' }, { source: 'A', target: 'sub/C' }] })
   if (url.includes('/api/vault/note')) return json({ ok: true, path: 'A', markdown: '# A' })
+  if (url.endsWith('/api/business')) return json({
+    source: 'ANTIGRAVITY', emergent: { state: 'UP', health: { userCount: 3 }, analytics: { state: 'UNAVAILABLE' } },
+    crm: { state: 'UP', crm: { totalLeads: 12, hotLeads: 2, totalCampaigns: 3, email: { openRate: 50 } } },
+    marketing: { state: 'PARTIAL', marketing: { activeAutomationRules: 1, socialLeadsCaptured: 7, landingPageConversions: 8 } },
+  })
   if (url.endsWith('/api/avatars')) return json({ count: 1, files: [{ file: 'fable-avatar.png', url: '/avatars/fable-avatar.png', bytes: 1000 }] })
   if (url.endsWith('/api/agents')) return json({ count: 2, source: 'C:/ANTIGRAVITY/.agents/skills', agents: [
     { id: 'judge-house', name: 'judge-house', description: 'Judge lane protocol', category: 'ops + method', path: '.agents/skills/judge-house/SKILL.md' },
@@ -107,6 +112,18 @@ describe('no sample data', () => {
     expect(src).not.toMatch(/'251\+'/)
     expect(src).not.toMatch(/Joshua Coleman/)
     expect(src).not.toMatch(/127\.0\.0\.1:20128|localhost:20128/)
+  })
+})
+
+describe('business telemetry HUD', () => {
+  it('renders verified CRM and marketing aggregates without requiring analytics auth', async () => {
+    await app.initBusiness()
+    expect(registry.get('#business-status').textContent).toContain('Date App: UP')
+    expect(registry.get('#business-leads').textContent).toBe('12')
+    expect(registry.get('#business-hot-leads').textContent).toBe('2')
+    expect(registry.get('#business-open-rate').textContent).toBe('50%')
+    expect(registry.get('#business-social').textContent).toBe('7')
+    expect(registry.get('#business-detail').textContent).toContain('analytics not authorized')
   })
 })
 
